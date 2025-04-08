@@ -4,6 +4,10 @@ import "os"
 
 type TokenType string
 
+func (t *TokenType) String() string {
+	return string(*t)
+}
+
 const (
 	// Special tokens
 	TokenEOF        TokenType = "EOF"
@@ -22,24 +26,23 @@ const (
 	TokenMultiply TokenType = "*"
 	TokenDivide   TokenType = "/"
 	//Comparators
-	TokenAssign           TokenType = "="
-	TokenEqual            TokenType = "=="
-	TokenNotEqual         TokenType = "!="
+	TokenAssign           TokenType = "EQUALS"
+	TokenEqual            TokenType = "CHECK_EQUALS"
+	TokenNotEqual         TokenType = "NOT_EQUAL"
 	TokenLessThan         TokenType = "<"
-	TokenGreaterThan      TokenType = ">"
+	TokenGreaterThan      TokenType = "<"
 	TokenLessThanEqual    TokenType = "<="
 	TokenGreaterThanEqual TokenType = ">="
 	TokenAnd              TokenType = "AND"
 	TokenOr               TokenType = "OR"
 	TokenNot              TokenType = "NOT"
 	//Separators
-	TokenSemicolon  TokenType = ";"
 	TokenComma      TokenType = ","
 	TokenOpenParen  TokenType = "("
 	TokenCloseParen TokenType = ")"
 	TokenOpenBrace  TokenType = "{"
 	TokenCloseBrace TokenType = "}"
-	TokenNewLine    TokenType = "\\n"
+	TokenSep        TokenType = "SEPARATOR"
 	// Literals
 	TokenString TokenType = "STRING"
 	TokenNumber TokenType = "NUMBER"
@@ -82,6 +85,7 @@ func NewFromFile(filePath string) (*Lexer, error) {
 	l.readChar()
 	return l, nil
 }
+
 func (l *Lexer) readChar() {
 	if l.nextPosition >= len(l.input) {
 		l.currentChar = 0
@@ -126,7 +130,6 @@ func (l *Lexer) identifyToken() Token {
 		return newToken(TokenIdentifier, identifier)
 	}
 }
-
 func (l *Lexer) identifyNumber() Token {
 	start := l.position
 	for isDigit(l.currentChar) {
@@ -163,12 +166,9 @@ func (l *Lexer) NextToken() Token {
 		}
 		l.readChar()
 		return newToken(TokenAssign, "=")
-	case ';':
+	case '\n', ';':
 		l.readChar()
-		return newToken(TokenSemicolon, ";")
-	case '\n':
-		l.readChar()
-		return newToken(TokenNewLine, "\\n")
+		return newToken(TokenSep, "\\n")
 	case ',':
 		l.readChar()
 		return newToken(TokenComma, ",")
