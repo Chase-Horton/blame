@@ -1,0 +1,22 @@
+program ::= statement*
+statement ::= (assignment | expression | if_statement | while_statement | block_statement) ';'
+
+if_statement ::= 'if' '(' conditional ')' block_statement ('else' block_statement)?
+conditional ::= expression ('==' | '!=' | '<' | '>' | '<=' | '>=') expression
+
+while_statement ::= 'while' '(' conditional ')' block_statement
+block_statement ::= '{' statement* '}'
+
+assignment ::= identifier '=' expression ';'
+expression ::= ('+' | '-')? term (('+' | '-') term)*
+term ::= factor (('*' | '/') factor)*
+
+factor ::= paren_expr | number | identifier | string
+paren_expr ::= '(' expression ')'
+
+digit ::= [0-9]
+number ::= digit+ ('.' digit+)?
+
+alpha ::= [a-zA-Z_]
+identifier ::= alpha (alpha | digit)*
+string ::= '"' (alpha | digit | ' ')* '"'

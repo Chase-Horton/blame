@@ -1,11 +1,9 @@
 package ast
 
-type Comparator string
-type Operator string
-
 type Node interface {
 }
 type Statement interface {
+	StmtType() string
 }
 type Program struct {
 	Statements []Statement
@@ -80,5 +78,21 @@ type BlockStatement struct {
 }
 type AssignmentStatement struct {
 	Identifier *Identifier
-	Value      *Expression
+	Expression *Expression
+}
+
+func (*AssignmentStatement) StmtType() string {
+	return "AssignmentStatement"
+}
+func (*IfStatement) StmtType() string {
+	return "IfStatement"
+}
+func (*WhileStatement) StmtType() string {
+	return "WhileStatement"
+}
+func (*DoWhileStatement) StmtType() string {
+	return "DoWhileStatement"
+}
+func (*BlockStatement) StmtType() string {
+	return "BlockStatement"
 }

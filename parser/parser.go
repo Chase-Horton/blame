@@ -10,7 +10,6 @@ import (
 
 type Parser struct {
 	lexer            *lexer.Lexer
-	errors           []string
 	currentToken     lexer.Token
 	prevToken        lexer.Token
 	identifierLookup map[string]map[string]*ast.Identifier
@@ -36,7 +35,8 @@ func (p *Parser) lookupIdent(ident string) *ast.Identifier {
 	return p.identifierLookup[p.currentScope][ident]
 }
 func (p *Parser) error(msg string) {
-	p.errors = append(p.errors, msg)
+	panic("Parser error: " + msg + " at " + p.currentToken.Literal + " on line: " +
+		strconv.Itoa(p.currentToken.LineNum) + " col: " + strconv.Itoa(p.currentToken.ColPos))
 }
 func (p *Parser) nextToken() {
 	p.prevToken = p.currentToken
@@ -78,10 +78,11 @@ func (p *Parser) statement() ast.Statement {
 	if p.accept(lexer.TokenIdentifier) {
 		S := &ast.AssignmentStatement{Identifier: p.lookupIdent(p.prevToken.Literal)}
 		if p.accept(lexer.TokenAssign) {
-			S.Value = p.expression()
+			S.Expression = p.expression()
 		} else {
 			p.error("expected assignment")
 		}
+		p.expect(lexer.TokenSep)
 		return S
 	} else if p.accept(lexer.TokenKeywordIf) {
 		iff := ast.IfStatement{}
@@ -129,15 +130,14 @@ func (p *Parser) factor() ast.Factor {
 	} else if p.accept(lexer.TokenNumber) {
 		num, err := strconv.Atoi(p.prevToken.Literal)
 		if err != nil {
-			p.error("invalid number literal")
+			p.error("invalid number literal: " + p.prevToken.Literal)
 			return nil
 		}
 		return &ast.NumberLiteral{Value: num}
 	} else if p.accept(lexer.TokenOpenParen) {
 		return p.parenExpression()
-	} else {
-		p.error("expected factor")
 	}
+	p.error("expected factor")
 	return nil
 }
 func (p *Parser) term() *ast.Term {
@@ -153,12 +153,13 @@ func (p *Parser) signedTerm() *ast.SignedTerm {
 	if p.accept(lexer.TokenPlus) || p.accept(lexer.TokenMinus) {
 		return &ast.SignedTerm{Sign: p.prevToken.Literal, Term: p.term()}
 	}
-	return nil
+	return &ast.SignedTerm{Term: p.term()}
 }
 func (p *Parser) expression() *ast.Expression {
 	E := ast.Expression{}
+	E.Left = &ast.SignedTerm{}
 	if p.accept(lexer.TokenPlus) || p.accept(lexer.TokenMinus) {
-		E.Left = &ast.SignedTerm{Sign: p.prevToken.Literal}
+		E.Left.Sign = p.prevToken.Literal
 	}
 	E.Left.Term = p.term()
 	for p.accept(lexer.TokenPlus) || p.accept(lexer.TokenMinus) {

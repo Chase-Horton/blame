@@ -1,6 +1,9 @@
 package lexer
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 type TokenType string
 
@@ -51,12 +54,18 @@ const (
 type Token struct {
 	Type    TokenType
 	Literal string
+	LineNum int
+	ColPos  int
 }
+
+var LINE_NUM, COL_POS int = 1, 0
 
 func newToken(t TokenType, literal string) Token {
 	return Token{
 		Type:    t,
 		Literal: literal,
+		LineNum: LINE_NUM,
+		ColPos:  COL_POS,
 	}
 }
 
@@ -94,12 +103,20 @@ func (l *Lexer) readChar() {
 	}
 	l.position = l.nextPosition
 	l.nextPosition++
+	COL_POS++
+	if l.currentChar == '\n' {
+		LINE_NUM++
+		COL_POS = 1
+	}
 }
 func (l *Lexer) peek() rune {
 	if l.nextPosition >= len(l.input) {
 		return 0
 	}
 	return rune(l.input[l.nextPosition])
+}
+func (l *Lexer) error(msg string) {
+	panic("Lexer error: " + msg + " at " + string(l.currentChar) + " on line: " + strconv.Itoa(LINE_NUM) + " col: " + strconv.Itoa(COL_POS))
 }
 
 func isEnglishLetter(r rune) bool {
@@ -109,7 +126,7 @@ func isDigit(r rune) bool {
 	return r >= '0' && r <= '9'
 }
 func isWhitespace(r rune) bool {
-	return r == ' ' || r == '\t' || r == '\r'
+	return r == ' ' || r == '\t' || r == '\r' || r == '\n'
 }
 func (l *Lexer) identifyToken() Token {
 	start := l.position
@@ -166,9 +183,36 @@ func (l *Lexer) NextToken() Token {
 		}
 		l.readChar()
 		return newToken(TokenAssign, "=")
-	case '\n', ';':
+	case '<':
+		if l.peek() == '=' {
+			l.readChar()
+			l.readChar()
+			return newToken(TokenLessThanEqual, "<=")
+		} else if l.peek() == '>' {
+			l.readChar()
+			l.readChar()
+			return newToken(TokenNotEqual, "<>")
+		}
 		l.readChar()
-		return newToken(TokenSep, "\\n")
+		return newToken(TokenLessThan, "<")
+	case '>':
+		if l.peek() == '=' {
+			l.readChar()
+			l.readChar()
+			return newToken(TokenGreaterThanEqual, ">=")
+		}
+		l.readChar()
+		return newToken(TokenGreaterThan, ">")
+	case '!':
+		if l.peek() == '=' {
+			l.readChar()
+			l.readChar()
+			return newToken(TokenNotEqual, "!=")
+		}
+		l.error("unexpected character: !")
+	case ';':
+		l.readChar()
+		return newToken(TokenSep, ";")
 	case ',':
 		l.readChar()
 		return newToken(TokenComma, ",")
@@ -193,4 +237,5 @@ func (l *Lexer) NextToken() Token {
 			return newToken(TokenIllegal, string(l.currentChar))
 		}
 	}
+	return newToken(TokenIllegal, string(l.currentChar))
 }
